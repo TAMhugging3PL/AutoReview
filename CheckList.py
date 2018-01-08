@@ -49,11 +49,17 @@ def is_consistent_security_patch(reports):
 
 def is_security_patch_up_to_date(reports):
     sp= reports[0].test_result.sw.build_version_security_patch
-    sp_month=sp.split('-')[1]
-    if (datetime.today().month-int(sp_month)) <= 2:
+    sp_year = sp.split('-')[0]
+    sp_month = sp.split('-')[1]
+    today_year=datetime.today().year
+    today_month=datetime.today().month
+    if today_year-int(sp_year)==1:
+        today_month=today_month+12
+    if (today_month-int(sp_month)) <= 2:
         return 1
     else:
         return 0
+    
 def is_all_modules_done(reports):
     for report in reports:
         md=report.test_result.modules_done_num
