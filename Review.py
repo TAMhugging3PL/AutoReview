@@ -7,17 +7,16 @@ from datetime import datetime
 from Define import *
 from Common import *
 from CheckList import *
-import HTMLMethod
 import socket
 
 #global variables
 test_reports=[]
 reports_sorting_rule={'gts':0,'cts':1,'cts-reference-aosp':2,'verifier':3,'vts':4}
-debug_level=DebugLevel.DEBUG
+debug_level=DebugLevel.OFF
 
 def main():
     try:
-        if False and socket.gethostname()=="S17B005376-NB":  #spirit's pc local test
+        if True and socket.gethostname()=="S17B005376-NB":  #spirit's pc local test
             debug_log("unzip",DebugLevel.DEBUG)
             unzip_all(".")
             time.sleep(1)
@@ -26,7 +25,6 @@ def main():
         #region #debug msg
         for report in test_reports:
             debug_log("*************************************************************************************************",DebugLevel.INFO)
-            debug_log(HTMLMethod.gen_tag_td(report.file_name),DebugLevel.INFO)
             debug_log(report.test_result.suite_plan,DebugLevel.INFO)
             debug_log(report.test_result.sw.info(),DebugLevel.INFO)
             debug_log("Modules_Total: %d" % report.test_result.modules_total_num, DebugLevel.INFO)
@@ -159,7 +157,6 @@ def get_failed_testcase(line):
     return res
 
 def gen_table_basic_info():
-    res=""
     report_basic_info = \
         [
             ["Fingerprint", test_reports[0].test_result.sw.build_fingerprint],
@@ -169,17 +166,18 @@ def gen_table_basic_info():
         ]
     if test_reports[0].device_info != None:
         report_basic_info.append(
-            ["ClientId", test_reports[0].device_info["ro_property"]["ro.com.google.clientidbase"]["value"]])
+            ["ClientId", str(test_reports[0].device_info["ro_property"]["ro.com.google.clientidbase"]["value"])])
         report_basic_info.append(
-            ["GMS Version", test_reports[0].device_info["ro_property"]["ro.com.google.gmsversion"]["value"]])
+            ["GMS Version", str(test_reports[0].device_info["ro_property"]["ro.com.google.gmsversion"]["value"])])
     table_title = str.format("BASIC INFO")
     table_name = "tb_basic_info"
-    res += HTMLMethod.gen_table(table_title, table_name, report_basic_info)
-    return res
+    return str({"table_title": table_title, "table_name": table_name, "table_data": report_basic_info})
 
 def gen_table_report_summary():
     res=""
     for report in test_reports:
+        if res!="":
+            res+=","
         report_summary = \
             [
                 ["Test Report", str.format("%s.zip" % report.file_name)],
@@ -192,37 +190,47 @@ def gen_table_report_summary():
             ]
         table_title = str.format("%s REPORT" % report.test_result.suite_plan.upper())
         table_name = "tb" + report.test_result.suite_plan
-        res += HTMLMethod.gen_table(table_title, table_name, report_summary)
+        res+= str({"table_title": table_title, "table_name": table_name, "table_data": report_summary})
     return res
 
 def gen_check_list_table():
     res=""
-    check_list_result = [["Item", "Sub Item","Comment", "Check Result", "TAM Confirm"]]
-    tam_confirm_chk=HTMLMethod.gen_input_check_tam_confirm()
-    tam_confirm_comment=HTMLMethod.gen_input_text_tam_confirm()
+    check_list_result = []
     for li in check_list:
         check_item=CheckItemBase(li)
         check_item.check(test_reports)
-        debug_log(check_item.check_result,DebugLevel.INFO)
-        check_list_result.append([str(check_item.title),str(check_item.subtitle),tam_confirm_comment,str(check_item.check_result),tam_confirm_chk])
+        check_list_result.append([str(check_item.title),str(check_item.subtitle),str(check_item.check_result),"elm_textarea","elm_checkbox"])
 
-    table_title = str.format("CHECK LIST")
+    table_title = "CHECK LIST"
     table_name = "tb_check_list"
-    res += HTMLMethod.gen_check_table(table_title, table_name,check_list_result )
+    res += str({"table_title": table_title, "table_name": table_name, "table_data": check_list_result})
     return res
 
 def output():
-    if len(test_reports)==0:
+    if len(test_reports) == 0:
         return
-    fo=open("test1.html","w")
-    table_basic_info=gen_table_basic_info()
-    table_report_summary = gen_table_report_summary()
-    summary_and_info=HTMLMethod.gen_div_info(table_basic_info+table_report_summary)
-    check_list_and_result=HTMLMethod.gen_div_checklist(gen_check_list_table())
-    summary_button=HTMLMethod.gen_summary_button()
-    html_main_content=HTMLMethod.gen_main_content(summary_and_info+check_list_and_result+summary_button)
-    fo.write(HTMLMethod.gen_html(html_main_content))
-    fo.close()
+    tmp="var basic_tables=[\n"
+    tmp+=gen_table_basic_info()+",\n"
+    tmp+=gen_table_report_summary()+"\n"
+    tmp+="];\n"
+    tmp+="var check_list="+gen_check_list_table()+";\n"
+    report_name=str.format("report_%s_%s.html" %(test_reports[0].test_result.sw.build_brand,test_reports[0].test_result.sw.build_product))
+    insert_data_into_file("template.html","    //data from test reports",report_name,tmp)
+
+def insert_data_into_file(source_file,key_word,output_file,value):
+    f = open(source_file, "r")
+    contents = f.readlines()
+    f.close()
+    index = 0
+    for line in contents:
+        index = index + 1
+        if line.startswith(key_word):
+            break
+    contents.insert(index, value)
+    f = open(output_file, "w")
+    contents = "".join(contents)
+    f.write(contents)
+    f.close()
 
 def debug_log(msg,lv):
     if(debug_level>=lv):
