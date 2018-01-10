@@ -1,0 +1,223 @@
+<!DOCTYPE html><html>
+<head>
+<meta charset = "UTF-8">
+<title>Review Report</title >
+<script src="https://code.jquery.com/jquery-3.2.1.min.js"></script>
+</head>
+<style>
+    body {overflow-y: scroll;font-size:small}
+    div#main {width:70%;min-width:500px; margin-left:15%; padding:10px}
+    span.info {display:block;width:95%;text-align:right;font-size:smaller;}
+    span.info a {margin-right:2px;color:#555555}
+    table {width:95%;border-width:1px; border-color:black}
+    td, th {min-width:220px; text-align:left; padding:2px; padding-left:6px; background:#eeeeee}
+    th {width:40%; min-width:120px; background:#557baa; color: #ffffff;}
+    div.check_list table tr.odd td{background:#ffffff;}
+    div.check_list table th {min-width:30px;background:#7b7b7b; color: #ffffff;}
+    div.check_list table td {min-width:30px;}
+    div.check_list table tr td.pass {background:#a0dd80}
+    div.check_list table tr td.fail {background:#ff9999}
+</style>
+<script type= text/javascript>
+    //data from test reports
+</script>
+<body>
+<div id="main">
+    <span class="info"><a href="javascript:hide_div('div_basic_info');">Basic Info & Report Summary Hide/Un-Hide</a></span>
+    <div class="info" id="div_basic_info">
+    </div>
+    <div class="check_list" id="div_check_list">
+    </div>
+    <br/>
+    <input type="button" value="Summary" width="200px" height="30px" onclick="return check_tam_confirm();">
+</div>
+</body>
+<script type= text/javascript>
+init();
+function init()
+{
+    init_basic_tables();
+    init_checklist();
+    init_checkbox();
+}
+function init_basic_tables()
+{
+    table_content="";
+    if(typeof(basic_tables)=="undefined")
+        return;
+    for(var i=0;i<basic_tables.length;i++)
+    {
+        table_content+=gen_table_html(basic_tables[i].table_title, basic_tables[i].table_name, basic_tables[i].table_data);
+    }
+    $("#div_basic_info").html(table_content);
+}
+function init_checklist()
+{
+    checklist_content="";
+    if(typeof(check_list)=="undefined")
+        return;
+    checklist_content+=gen_checklist_html(check_list.table_title, check_list.table_name, check_list.table_data);
+    $("#div_check_list").html(checklist_content);
+}
+function init_checkbox()
+{
+    $(":checkbox").click(function(){
+        if($(this).parent().parent().find("textarea").length>0)
+        {
+            check_comment=$(this).parent().parent().find("textarea")[0];
+            console.log(check_comment.value);
+            if(check_comment.value=="")
+            {
+                alert("Please write your comment");
+                check_comment.focus();
+                this.checked=false;
+            }
+        }
+    });
+}
+function gen_table_html(table_title, table_name, table_data)
+{
+    var tmp="";
+    tmp+="<h4>"+table_title+"</h4>";
+    tmp+="<table id=\""+table_name+"\">";
+    if(typeof(table_data)!="undefined")
+	{
+		if(table_data.length>0)
+		{
+			for (var i=0;i<table_data.length;i++)
+			{
+				tmp+="<tr>";
+				tmp+="<th>"+table_data[i][0]+"</th>";
+				tmp+="<td>"+table_data[i][1]+"</td>";
+				tmp+="</tr>";
+			}
+		}
+	}
+	else
+	{
+	    tmp+="<tr><td>no data</td></tr>";
+	}
+	tmp+="</table>";
+	return tmp;
+}
+
+function gen_checklist_html(table_title, table_name, table_data)
+{
+    var tmp="";
+    tmp+="<h4>"+table_title+"</h4>";
+    tmp+="<table id=\""+table_name+"\" style=\"table-layout:fixed\">";
+
+    if(typeof(table_data)!="undefined")
+	{
+		if(table_data.length>0)
+		{
+		    rowspan_start_row=-1;
+		    rowspan_num=0;
+		    col="";
+		    is_main_item_pass=true;
+		    is_main_item_need_confirm=true;
+			is_odd_row=true;
+			tmp+="<tr><th style='width:200px'>Item</th><th>Sub Item</th><th style='width:90px'>Check Result</th><th style='width:200px'>Comment</th><th style='width:90px'>TAM Confirm</th></tr>";
+			for (var i=0;i<table_data.length;i++)
+			{
+				if(rowspan_start_row<0)
+				{
+					rowspan_start_row=i;
+					col=table_data[i][0];
+				}
+                rowspan_num++;
+				is_main_item_pass=table_data[i][2]!="PASS"?false:is_main_item_pass;
+				is_main_item_need_confirm=table_data[i][2]!="N/A"?true:is_main_item_pass;
+				mapping_col=(i<table_data.length-1)?table_data[i+1][0]:"";
+				//console.log(col+";"+mapping_col);
+				if (col!=mapping_col)
+				{
+					for(var j=rowspan_start_row;j<rowspan_start_row+rowspan_num;j++)
+					{
+						//console.log(">"+j);
+						if(is_odd_row)
+							tmp+="<tr class='odd'>";
+						else
+							tmp+="<tr>";
+					    main_item=table_data[j][0];
+					    sub_item=table_data[j][1];
+					    check_result=table_data[j][2];
+						if(j==rowspan_start_row)
+						{
+							tmp+="<td rowspan="+rowspan_num+">"+main_item+"</td>";
+						}
+						tmp+="<td>"+sub_item+"</td>";
+						if(check_result=="PASS")
+						{tmp+="<td class='pass'>"+check_result+"</td>";}
+						else if(check_result=="FAIL")
+						{tmp+="<td class='fail'>"+check_result+"</td>";}
+						else
+						{tmp+="<td>"+check_result+"</td>";}
+
+                        if(j==rowspan_start_row)
+						{
+						    if(is_main_item_need_confirm)
+						    {
+                                if(!is_main_item_pass)
+                                {
+                                    tmp+="<td rowspan="+rowspan_num+"><textarea style='width:95%' placeholder='Write comment'></textarea></td>";
+                                    tmp+="<td rowspan="+rowspan_num+"><input type=checkbox></td>";
+                                }
+                                else
+                                {
+                                    tmp+="<td rowspan="+rowspan_num+"></td>";
+                                    tmp+="<td rowspan="+rowspan_num+"><input type=checkbox checked></td>";
+                                }
+						    }
+						}
+						tmp+="</tr>";
+					}
+					is_odd_row=is_odd_row?false:true;
+					rowspan_start_row=-1;
+					rowspan_num=0;
+                    is_main_item_pass=true;
+                    is_main_item_need_confirm=true;
+				}
+                tmp+="</tr>";
+			}
+		}
+	}
+	else
+	{
+	    tmp+="<tr><td>no data</td></tr>";
+	}
+	tmp+="</table>";
+	return tmp;
+}
+function gen_elm(elm_class, elm_type)
+{
+
+}
+function hide_div(elmId)
+{
+    var target=document.getElementById(elmId);
+    if (target.style.display=='none')
+    {
+        target.style.display='block';
+    }
+    else
+    {
+        target.style.display='none';
+    }
+}
+function check_tam_confirm()
+{
+    chks=document.getElementsByClassName('chk_tam_confirm');
+    for(i=0;i<chks.length;i++)
+    {
+        if(!chks[i].checked)
+        {
+            alert('Not confirmed');
+            chks[i].focus();
+            return false;
+        }
+    }
+}
+
+</script>
+</html>
