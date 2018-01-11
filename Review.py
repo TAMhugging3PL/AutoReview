@@ -12,11 +12,11 @@ import socket
 #global variables
 test_reports=[]
 reports_sorting_rule={'gts':0,'cts':1,'cts-reference-aosp':2,'verifier':3,'vts':4}
-debug_level=DebugLevel.OFF
+debug_level=DebugLevel.ERROR
 
 def main():
     try:
-        if True and socket.gethostname()=="S17B005376-NB":  #spirit's pc local test
+        if False and socket.gethostname()=="S17B005376-NB":  #spirit's pc local test
             debug_log("unzip",DebugLevel.DEBUG)
             unzip_all(".")
             time.sleep(1)
@@ -86,6 +86,9 @@ def parse_device_info(device_info_path):
     device_info={}
     for root,dirs, files in os.walk(device_info_path):
         for file in files:
+            #BUG001
+            if file.endswith('LibraryDetailDeviceInfo.deviceinfo.json'):
+                continue
             fo=open(os.path.join(device_info_path,file))
             data=json.load(fo)
             if len(data)>0 and data.keys()>0:
@@ -165,10 +168,18 @@ def gen_table_basic_info():
             ["Security Patch", test_reports[0].test_result.sw.build_version_security_patch]
         ]
     if test_reports[0].device_info != None:
-        report_basic_info.append(
-            ["ClientId", str(test_reports[0].device_info["ro_property"]["ro.com.google.clientidbase"]["value"])])
-        report_basic_info.append(
-            ["GMS Version", str(test_reports[0].device_info["ro_property"]["ro.com.google.gmsversion"]["value"])])
+        #non-china
+        if test_reports[0].device_info["ro_property"].has_key("ro.com.google.clientidbase"):
+            report_basic_info.append(
+                ["ClientId", str(test_reports[0].device_info["ro_property"]["ro.com.google.clientidbase"]["value"])])
+            report_basic_info.append(
+                ["GMS Version", str(test_reports[0].device_info["ro_property"]["ro.com.google.gmsversion"]["value"])])
+        #china
+        else:
+            report_basic_info.append(
+                ["ClientId", ""])
+            report_basic_info.append(
+                ["GMS Version", ""])
     table_title = str.format("BASIC INFO")
     table_name = "tb_basic_info"
     return str({"table_title": table_title, "table_name": table_name, "table_data": report_basic_info})
@@ -199,7 +210,7 @@ def gen_check_list_table():
     for li in check_list:
         check_item=CheckItemBase(li)
         check_item.check(test_reports)
-        check_list_result.append([str(check_item.title),str(check_item.subtitle),str(check_item.check_result),"elm_textarea","elm_checkbox"])
+        check_list_result.append([str(check_item.title),str(check_item.subtitle),str(check_item.check_result),str(check_item.detail)])
 
     table_title = "CHECK LIST"
     table_name = "tb_check_list"
