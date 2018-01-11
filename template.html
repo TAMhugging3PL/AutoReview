@@ -17,6 +17,8 @@
     div.check_list table td {min-width:30px;}
     div.check_list table tr td.pass {background:#a0dd80}
     div.check_list table tr td.fail {background:#ff9999}
+    div.check_list table tr td.ambigurous {background:#ffeebb}
+    div.check_list table tr td.info {background:#90c0ee}
 </style>
 <script type= text/javascript>
     //data from test reports
@@ -117,7 +119,7 @@ function gen_checklist_html(table_title, table_name, table_data)
 		    is_main_item_pass=true;
 		    is_main_item_need_confirm=true;
 			is_odd_row=true;
-			tmp+="<tr><th style='width:200px'>Item</th><th>Sub Item</th><th style='width:90px'>Check Result</th><th style='width:200px'>Comment</th><th style='width:90px'>TAM Confirm</th></tr>";
+			tmp+="<tr><th style='width:200px'>Item</th><th>Sub Item</th><th style='width:130px'>Check Result</th><th style='width:200px'>Comment</th><th style='width:90px'>TAM Confirm</th></tr>";
 			for (var i=0;i<table_data.length;i++)
 			{
 				if(rowspan_start_row<0)
@@ -126,8 +128,8 @@ function gen_checklist_html(table_title, table_name, table_data)
 					col=table_data[i][0];
 				}
                 rowspan_num++;
-				is_main_item_pass=table_data[i][2]!="PASS"?false:is_main_item_pass;
-				is_main_item_need_confirm=table_data[i][2]!="N/A"?true:is_main_item_pass;
+				is_main_item_pass=(table_data[i][2]=="FAIL" || table_data[i][2]=="AMBIGUROUS")?false:is_main_item_pass;
+				is_main_item_need_confirm=table_data[i][2]!="N/A"?true:!is_main_item_pass;
 				mapping_col=(i<table_data.length-1)?table_data[i+1][0]:"";
 				//console.log(col+";"+mapping_col);
 				if (col!=mapping_col)
@@ -142,18 +144,25 @@ function gen_checklist_html(table_title, table_name, table_data)
 					    main_item=table_data[j][0];
 					    sub_item=table_data[j][1];
 					    check_result=table_data[j][2];
+					    check_detail=table_data[j][3];
 						if(j==rowspan_start_row)
 						{
 							tmp+="<td rowspan="+rowspan_num+">"+main_item+"</td>";
 						}
-						tmp+="<td>"+sub_item+"</td>";
+						if(check_detail=="")
+						    tmp+="<td>"+sub_item+"</td>";
+						else
+						    tmp+="<td>"+sub_item+"<br><mark>"+check_detail+"</mark></td>";
 						if(check_result=="PASS")
 						{tmp+="<td class='pass'>"+check_result+"</td>";}
 						else if(check_result=="FAIL")
 						{tmp+="<td class='fail'>"+check_result+"</td>";}
-						else
-						{tmp+="<td>"+check_result+"</td>";}
-
+						else if(check_result=="N/A")
+						{tmp+="<td style='color:gray;'>"+check_result+"</td>";}
+						else if(check_result=="AMBIGUROUS")
+						{tmp+="<td class='ambigurous'>"+check_result+"</td>";}
+                        else
+                        {tmp+="<td class='info'>"+check_result+"</td>";}
                         if(j==rowspan_start_row)
 						{
 						    if(is_main_item_need_confirm)
@@ -168,6 +177,11 @@ function gen_checklist_html(table_title, table_name, table_data)
                                     tmp+="<td rowspan="+rowspan_num+"></td>";
                                     tmp+="<td rowspan="+rowspan_num+"><input type=checkbox checked></td>";
                                 }
+						    }
+						    else
+						    {
+						        tmp+="<td rowspan="+rowspan_num+"></td>";
+                                tmp+="<td rowspan="+rowspan_num+"></td>";
 						    }
 						}
 						tmp+="</tr>";
