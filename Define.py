@@ -9,6 +9,8 @@ keyword_in_xml=\
     "build_product": "",
     "build_device": "",
     "build_version_release": "",
+    "build_version_incremental":"",
+    "build_id":"",
     "build_version_security_patch": "",
     "build_manufacturer":"",
     "build_model":"",
@@ -39,6 +41,8 @@ class SWImg(Basic):
         self.build_product=""
         self.build_device=""
         self.build_version_release=""
+        self.build_version_incremental=""
+        self.build_id=""
         self.build_version_security_patch=""
         self.build_manufacturer = ""
         self.build_model = ""
@@ -75,7 +79,11 @@ class CheckItemBase():
         self.subtitle=check_item[1]
         self.check_method=check_item[2]
         self.judge_rule=check_item[3]
+        self.detail=""
     def check(self,argvs):
-        res=self.check_method(argvs)
-        if self.judge_rule.get(res):
-            self.check_result=self.judge_rule[res]
+        try:
+            res,self.detail=self.check_method(argvs)
+            if self.judge_rule.get(res):
+                self.check_result=self.judge_rule[res]
+        except Exception as e:
+            print str.format('Check Error: %s @ %s' %(e,self.check_method))
