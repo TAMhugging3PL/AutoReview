@@ -12,25 +12,49 @@
     table {width:95%;border-width:1px; border-color:black}
     td, th {min-width:220px; text-align:left; padding:2px; padding-left:6px; background:#eeeeee}
     th {width:40%; min-width:120px; background:#557baa; color: #ffffff;}
-    div.check_list table tr.odd td{background:#ffffff;}
-    div.check_list table th {min-width:30px;background:#7b7b7b; color: #ffffff;}
-    div.check_list table td {min-width:30px;}
-    div.check_list table tr td.pass {background:#a0dd80}
-    div.check_list table tr td.fail {background:#ff9999}
-    div.check_list table tr td.ambigurous {background:#ffeebb}
-    div.check_list table tr td.info {background:#90c0ee}
+    div {margin-bottom:30px;}
+    div.check_list table {table-layout:fixed}
+    div.check_list tr.odd td{background:#ffffff;}
+    div.check_list th,div.failure_list th {background:#7b7b7b; color: #ffffff;}
+    div.check_list th.main_item{width:160px;}
+    div.check_list th.sub_item{}
+    div.check_list th.check_detail{}
+    div.check_list th.check_result{width:100px;}
+    div.check_list th.tam_comment{width:160px;}
+    div.check_list th.tam_confirm{width:30px;}
+    div.check_list tr td.pass {background:#a0dd80}
+    div.check_list tr td.fail {background:#ff9999}
+    div.check_list tr td select{width:100%;border:0px;background:rgba(255, 255, 255,0)}
+    div.check_list tr td.unknown {background:#ffeebb}
+    div.check_list tr td.info {background:#90c0ee}
+    div.failure_list table {table-layout:fixed;}
+    div.failure_list table th {width:30%}
+    div.failure_list table td {background:#ffffff;padding:0px;}
+    table.fail_cases_list,table.waive_case_list {width:100%;border-width:0px;border-style:none;border-spacing:0px;}
+    table.fail_cases_list th,table.waive_case_list th {width:33%;}
+    table.fail_cases_list td.add_waiver, table.waive_case_list td.del_waiver{width:70px;}
+    table.fail_cases_list th,table.fail_cases_list td {color:#470074;background:#ffffff;padding-top:5px;padding-bottom:6px;}
+    table.fail_cases_list tr:nth-child(even) th,table.fail_cases_list tr:nth-child(even) td {background:#eeeeee}
+    table.waive_case_list th,table.waive_case_list td {color:gray;background:#ffffff;padding-top:5px;padding-bottom:6px;}
+    table.waive_case_list tr:nth-child(even) th,table.waive_case_list tr:nth-child(even) td {background:#eeeeee}
+    input[type=button].add_waiver,input[type=button].del_waiver {border-style:solid;background:rgba(255,255,255,0.3);color:gray;}
+    input[type=button].add_waiver:hover {border-color:green;color:green;}
+    input[type=button].del_waiver:hover {border-color:red;color:red;}
 </style>
 <script type= text/javascript>
+    var basic_tables,check_list,failure_list;
     //data from test reports
 </script>
 <body>
 <div id="main">
-    <span class="info"><a href="javascript:hide_div('div_basic_info');">Basic Info & Report Summary Hide/Un-Hide</a></span>
+    <span class="info"><a href="javascript:hide_selector('#div_basic_info');">Basic Info & Report Summary Hide/Un-Hide</a></span>
     <div class="info" id="div_basic_info">
     </div>
     <div class="check_list" id="div_check_list">
     </div>
-    <br/>
+    <div class="failure_list" id="div_failure_list">
+        123
+    </div>
     <input type="button" value="Summary" width="200px" height="30px" onclick="return check_tam_confirm();">
 </div>
 </body>
@@ -40,7 +64,7 @@ function init()
 {
     init_basic_tables();
     init_checklist();
-    init_checkbox();
+    init_failurelist();
 }
 function init_basic_tables()
 {
@@ -49,7 +73,7 @@ function init_basic_tables()
         return;
     for(var i=0;i<basic_tables.length;i++)
     {
-        table_content+=gen_table_html(basic_tables[i].table_title, basic_tables[i].table_name, basic_tables[i].table_data);
+        table_content+=gen_basic_table_html(basic_tables[i].table_title, basic_tables[i].table_name, basic_tables[i].table_data);
     }
     $("#div_basic_info").html(table_content);
 }
@@ -60,27 +84,55 @@ function init_checklist()
         return;
     checklist_content+=gen_checklist_html(check_list.table_title, check_list.table_name, check_list.table_data);
     $("#div_check_list").html(checklist_content);
+    init_checkbox();
+    init_check_result();
 }
+function init_failurelist()
+{
+    failurelist_content="";
+    if(typeof(failure_list)=="undefined")
+        return;
+    failurelist_content+=gen_failurelist_html(failure_list.table_title,failure_list.table_name,failure_list.table_data);
+    $("#div_failure_list").html(failurelist_content);
+}
+
 function init_checkbox()
 {
-    $(":checkbox").click(function(){
-        if($(this).parent().parent().find("textarea").length>0)
-        {
-            check_comment=$(this).parent().parent().find("textarea")[0];
-            console.log(check_comment.value);
-            if(check_comment.value=="")
-            {
-                alert("Please write your comment");
-                check_comment.focus();
-                this.checked=false;
-            }
-        }
+    $("th.tam_confirm :checkbox").click(function(){
+        var elm=$(this)[0];
+        $("td.tam_confirm :checkbox").each(function(){$(this)[0].checked=elm.checked;});
     });
 }
-function gen_table_html(table_title, table_name, table_data)
+function init_check_result()
+{
+    $("#div_check_list td select.sel_check_result").change(
+    function()
+    {
+        new_class=$(this).val().toLowerCase();
+        $(this).parent().attr('class',new_class);
+    });
+}
+function add_waiver(num1,num2)
+{
+    failure_list.table_data[num1].waiver_cases.push(failure_list.table_data[num1].failure_cases.pop(num2));
+    init_failurelist();
+}
+function remove_waiver(num1,num2)
+{
+console.log(num1);
+    failure_list.table_data[num1].failure_cases.push(failure_list.table_data[num1].waiver_cases.pop(num2));
+    init_failurelist();
+}
+function gen_basic_table_html(table_title, table_name, table_data)
 {
     var tmp="";
     tmp+="<h4>"+table_title+"</h4>";
+    tmp+=gen_table(table_name,table_data,true);
+	return tmp;
+}
+function gen_table(table_name,table_data,is_header_vertical)
+{
+    tmp="";
     tmp+="<table id=\""+table_name+"\">";
     if(typeof(table_data)!="undefined")
 	{
@@ -89,8 +141,13 @@ function gen_table_html(table_title, table_name, table_data)
 			for (var i=0;i<table_data.length;i++)
 			{
 				tmp+="<tr>";
-				tmp+="<th>"+table_data[i][0]+"</th>";
-				tmp+="<td>"+table_data[i][1]+"</td>";
+				for (var j=0;j<table_data[0].length;j++)
+				{
+				    if((j==0 && is_header_vertical) || i==0 && !is_header_vertical)
+				        tmp+="<th>"+table_data[i][j]+"</th>";
+				    else
+				        tmp+="<td>"+table_data[i][j]+"</td>";
+				}
 				tmp+="</tr>";
 			}
 		}
@@ -102,12 +159,11 @@ function gen_table_html(table_title, table_name, table_data)
 	tmp+="</table>";
 	return tmp;
 }
-
 function gen_checklist_html(table_title, table_name, table_data)
 {
     var tmp="";
     tmp+="<h4>"+table_title+"</h4>";
-    tmp+="<table id=\""+table_name+"\" style=\"table-layout:fixed\">";
+    tmp+="<table id=\""+table_name+"\">";
 
     if(typeof(table_data)!="undefined")
 	{
@@ -119,7 +175,13 @@ function gen_checklist_html(table_title, table_name, table_data)
 		    is_main_item_pass=true;
 		    is_main_item_need_confirm=true;
 			is_odd_row=true;
-			tmp+="<tr><th style='width:200px'>Item</th><th>Sub Item</th><th style='width:130px'>Check Result</th><th style='width:200px'>Comment</th><th style='width:90px'>TAM Confirm</th></tr>";
+
+			tmp+="<tr><th class='main_item'>Item</th>\
+			      <th class='sub_item'>Sub Item</th>\
+			      <th class='check_detail'>Fail Reason</th>\
+			      <th class='check_result'>Check Result</th>\
+			      <th class='tam_comment'>Comment</th>\
+			      <th class='tam_confirm'><input type='checkbox'></th></tr>";
 			for (var i=0;i<table_data.length;i++)
 			{
 				if(rowspan_start_row<0)
@@ -128,7 +190,7 @@ function gen_checklist_html(table_title, table_name, table_data)
 					col=table_data[i][0];
 				}
                 rowspan_num++;
-				is_main_item_pass=(table_data[i][2]=="FAIL" || table_data[i][2]=="AMBIGUROUS")?false:is_main_item_pass;
+				is_main_item_pass=(table_data[i][2]=="FAIL" || table_data[i][2]=="UNKNOWN")?false:is_main_item_pass;
 				is_main_item_need_confirm=table_data[i][2]!="N/A"?true:!is_main_item_pass;
 				mapping_col=(i<table_data.length-1)?table_data[i+1][0]:"";
 				//console.log(col+";"+mapping_col);
@@ -149,40 +211,12 @@ function gen_checklist_html(table_title, table_name, table_data)
 						{
 							tmp+="<td rowspan="+rowspan_num+">"+main_item+"</td>";
 						}
-						if(check_detail=="")
-						    tmp+="<td>"+sub_item+"</td>";
-						else
-						    tmp+="<td>"+sub_item+"<br><mark>"+check_detail+"</mark></td>";
-						if(check_result=="PASS")
-						{tmp+="<td class='pass'>"+check_result+"</td>";}
-						else if(check_result=="FAIL")
-						{tmp+="<td class='fail'>"+check_result+"</td>";}
-						else if(check_result=="N/A")
-						{tmp+="<td style='color:gray;'>"+check_result+"</td>";}
-						else if(check_result=="AMBIGUROUS")
-						{tmp+="<td class='ambigurous'>"+check_result+"</td>";}
-                        else
-                        {tmp+="<td class='info'>"+check_result+"</td>";}
+						tmp+="<td class='sub_item'>"+sub_item+"</td>";
+						tmp+="<td class='check_detail'>"+check_detail+"</td>";
+                        tmp+=gen_td_check_result(check_result);
                         if(j==rowspan_start_row)
 						{
-						    if(is_main_item_need_confirm)
-						    {
-                                if(!is_main_item_pass)
-                                {
-                                    tmp+="<td rowspan="+rowspan_num+"><textarea style='width:95%' placeholder='Write comment'></textarea></td>";
-                                    tmp+="<td rowspan="+rowspan_num+"><input type=checkbox></td>";
-                                }
-                                else
-                                {
-                                    tmp+="<td rowspan="+rowspan_num+"></td>";
-                                    tmp+="<td rowspan="+rowspan_num+"><input type=checkbox checked></td>";
-                                }
-						    }
-						    else
-						    {
-						        tmp+="<td rowspan="+rowspan_num+"></td>";
-                                tmp+="<td rowspan="+rowspan_num+"></td>";
-						    }
+                            tmp+=gen_tam_comment_and_tam_confirm(is_main_item_need_confirm,is_main_item_pass,rowspan_num)
 						}
 						tmp+="</tr>";
 					}
@@ -203,22 +237,133 @@ function gen_checklist_html(table_title, table_name, table_data)
 	tmp+="</table>";
 	return tmp;
 }
-function gen_elm(elm_class, elm_type)
-{
 
-}
-function hide_div(elmId)
+function gen_td_check_result(check_result)
 {
-    var target=document.getElementById(elmId);
-    if (target.style.display=='none')
+    res="";
+    switch(check_result)
     {
-        target.style.display='block';
+        case "PASS":
+        case "FAIL":
+        case "UNKNOWN":
+            cla=check_result.toLowerCase();
+            res+="<td class='"+cla+"'>";
+            res+=gen_select_check_result(check_result);
+            res+="</td>";
+            break;
+        case "N/A":
+            res+="<td class='na'>"+check_result+"</td>";
+            break;
+        default:
+            res+="<td class='info'>"+check_result+"</td>";
+            break;
+    }
+    return res;
+}
+function gen_select_check_result(check_result)
+{
+    res="<select class='sel_check_result'>";
+    switch(check_result)
+    {
+        case "PASS":
+            res+="<option selected>PASS</option>";
+            res+="<option>FAIL</option>";
+            res+="<option>UNKNOWN</option>";
+            break;
+        case "FAIL":
+            res+="<option>PASS</option>";
+            res+="<option selected>FAIL</option>";
+            res+="<option>UNKNOWN</option>";
+            break;
+        case "UNKNOWN":
+            res+="<option>PASS</option>";
+            res+="<option>FAIL</option>";
+            res+="<option selected>UNKNOWN</option>";
+            break;
+    }
+    res+="</select>";
+    return res;
+}
+function gen_tam_comment_and_tam_confirm(is_main_item_need_confirm,is_main_item_pass,rowspan_num)
+{
+    res="";
+    if(is_main_item_need_confirm)
+    {
+        if(!is_main_item_pass)
+        {
+            res+="<td rowspan="+rowspan_num+"><textarea style='width:95%' placeholder='Write comment'></textarea></td>";
+            res+="<td class='tam_confirm' rowspan="+rowspan_num+"><input type=checkbox></td>";
+        }
+        else
+        {
+            res+="<td rowspan="+rowspan_num+"></td>";
+            res+="<td class='tam_confirm' rowspan="+rowspan_num+"><input type=checkbox checked></td>";
+        }
     }
     else
     {
-        target.style.display='none';
+        res+="<td rowspan="+rowspan_num+"></td>";
+        res+="<td rowspan="+rowspan_num+"></td>";
+    }
+    return res;
+}
+
+function gen_failurelist_html(table_title, table_name, table_data)
+{
+    var tmp="";
+    tmp+="<h4>"+table_title+"</h4>";
+    tmp+="<table id=\""+table_name+"\">";
+    for(var i=0;i<table_data.length;i++)
+    {
+        var t=table_data[i];
+        tmp+="<tr>";
+        tmp+="<th>Failed Test Cases</th>";
+        tmp+="<th>File Name: "+t.filename+"</th>";
+        tmp+="<th>Test Suite: "+t.suite_plan+" "+t.suite_version+"</th>";
+        tmp+="<th>Android Ver: "+t.build_version+"</th>";
+        tmp+="</tr>";
+        tmp+="<tr><td colspan=4><table class='fail_cases_list'>";
+        for(var j=0;j<t.failure_cases.length;j++)
+        {
+            var fi=t.failure_cases[j];
+            tmp+="<tr><th>"+fi.module+"@"+fi.abi+"</th><td>"+fi.test_case+"#"+fi.test_item+"</td>";
+            tmp+="<td class='add_waiver'><input type='button' class='add_waiver' value='+ waiver' onclick='add_waiver("+i+","+j+");'></td>";
+            tmp+="</tr>";
+        }
+        tmp+="</table></td></tr>";
+    }
+    //gen waiver test cases
+    tmp+="<tr>";
+    tmp+="<th colspan=4>Waived Test Cases</th>";
+    tmp+="</tr>";
+    tmp+="<tr><td colspan=4><table class='waive_case_list'>";
+    for(var i=0;i<table_data.length;i++)
+    {
+        t=table_data[i]
+        for(var j=0;j<t.waiver_cases.length;j++)
+        {
+            var wi=t.waiver_cases[j];
+            tmp+="<tr><th>"+wi.module+"@"+wi.abi+"</th><td>"+wi.test_case+"#"+wi.test_item+"</td>";
+            tmp+="<td class='del_waiver'><input type='button' class='del_waiver' value='- waiver' onclick='remove_waiver("+i+","+j+");'></td>";
+            tmp+="</tr>";
+        }
+    }
+    tmp+="</table></td></tr>";
+    tmp+="</table>";
+    return tmp;
+}
+function hide_selector(selector)
+{
+    if($(selector).css('display')=='none')
+    {
+        $(selector).show();
+    }
+    else
+    {
+        $(selector).hide();
     }
 }
+
 function check_tam_confirm()
 {
     chks=document.getElementsByClassName('chk_tam_confirm');
