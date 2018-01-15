@@ -7,6 +7,7 @@ from datetime import datetime
 from Define import *
 from Common import *
 from CheckList import *
+from datasource import *
 import socket
 
 #global variables
@@ -122,17 +123,18 @@ def get_pairs_from_sub_layer(data):
 def parse_test_result(filename):
     fo = open(filename, "r")
     test_summary={}
+    test_case_tmp={}
     failed_testcases=[]
     for line in fo.readlines():
         line=line.strip()
         if(line.startswith('<') and line.endswith('>')):
-            parse_test_result_line(test_summary, failed_testcases, line)
-        if(len(failed_testcases)>0):
-            test_summary.setdefault("failed_testcases",failed_testcases)
+            parse_test_result_line(test_summary, failed_testcases, line,test_case_tmp)
+    if(len(failed_testcases)>0):
+        test_summary.setdefault("failed_testcases",failed_testcases)
     fo.close()
     return test_summary
 
-def parse_test_result_line(test_summary, failed_testcases, line):
+def parse_test_result_line(test_summary, failed_testcases, line,test_case_tmp):
     line = line.lstrip('<').rstrip('>').rstrip('/')
     if(line.startswith("Result") or line.startswith("Build") or line.startswith("Summary")):
         for _key in keyword_in_xml:
@@ -146,16 +148,36 @@ def parse_test_result_line(test_summary, failed_testcases, line):
                     _prop = str(_tmp[0])
                     _value = str(_tmp[1])
                 test_summary.setdefault(_prop, _value)
+    elif line.startswith('Module'):
+        val=get_xmlnode_attribuite(line,"Module","name")
+        if test_case_tmp.has_key('test_module_name'):
+            test_case_tmp['test_module_name']=val
+        else:
+            test_case_tmp.setdefault('test_module_name',val)
+        val=get_xmlnode_attribuite(line,"Module"," abi")
+        if test_case_tmp.has_key('test_module_abi'):
+            test_case_tmp['test_module_abi']=val
+        else:
+            test_case_tmp.setdefault('test_module_abi',val)
+    elif line.startswith('TestCase'):
+        val=get_xmlnode_attribuite(line,"TestCase","name")
+        if test_case_tmp.has_key('test_case_name'):
+            test_case_tmp['test_case_name'] = val
+        else:
+            test_case_tmp.setdefault('test_case_name',val)
     elif line.find("result=\"fail\"")>=0:
-        tmp = get_failed_testcase(line)
-        if (tmp != ""):
-            failed_testcases.append(tmp)
-            return
+        failitem={}
+        failitem.setdefault('module',test_case_tmp['test_module_name'])
+        failitem.setdefault('abi', test_case_tmp['test_module_abi'])
+        failitem.setdefault('test_case', test_case_tmp['test_case_name'])
+        failitem.setdefault('test_item', get_xmlnode_attribuite(line,"Test","name"))
+        failed_testcases.append(failitem)
+        return
 
-def get_failed_testcase(line):
+def get_xmlnode_attribuite(line,xml_node,attr):
     res=""
-    if(line.startswith("Test")):
-        res=line[line.index("name=\"")+len("name=\""):]
+    if(line.startswith(xml_node)):
+        res=line[line.index(attr+"=\"")+len(attr+"=\""):]
         res=res[:res.index("\"")]
     return res
 
@@ -204,7 +226,7 @@ def gen_table_report_summary():
         res+= str({"table_title": table_title, "table_name": table_name, "table_data": report_summary})
     return res
 
-def gen_check_list_table():
+def gen_table_check_list():
     res=""
     check_list_result = []
     for li in check_list:
@@ -217,14 +239,55 @@ def gen_check_list_table():
     res += str({"table_title": table_title, "table_name": table_name, "table_data": check_list_result})
     return res
 
+def gen_table_failure_list():
+    res=""
+    failure_list=[]
+    for report in test_reports:
+        if report.test_result.failed_num<=0:
+            continue
+        non_waived_testcase=[]
+        waiver_testcase=[]
+        suite_plan=report.test_result.suite_plan
+        suite_version=report.test_result.suite_version
+        build_version=report.test_result.sw.build_version_release
+        for testcase in report.test_result.failed_testcases:
+            is_waiver = False
+            for waiver in waiver_list:
+                if   build_version==waiver['build_version'] and \
+                    suite_plan==waiver['suite_plan'] and \
+                    suite_version== waiver['suite_version'] and \
+                    testcase['module']==waiver['module'] and\
+                    testcase['test_case']==waiver['test_case'] and\
+                    testcase['test_item']==waiver['test_item']:
+                        waiver_testcase.append(testcase)
+                        is_waiver=True
+                        break
+            if is_waiver==False:
+                non_waived_testcase.append(testcase)
+
+        failure_info={
+                        'filename': str.format("%s.zip" %report.file_name),\
+                        'suite_plan':suite_plan,\
+                        'suite_version':suite_version,\
+                        'build_version':build_version,\
+                        'failure_cases':non_waived_testcase,\
+                        'waiver_cases':waiver_testcase
+                      }
+        failure_list.append(failure_info)
+    table_title = "FAILURE TEST CASES"
+    table_name = "tb_failure_list"
+    res += str({"table_title": table_title, "table_name": table_name, "table_data": failure_list})
+    return res
+
 def output():
     if len(test_reports) == 0:
         return
-    tmp="var basic_tables=[\n"
+    tmp="basic_tables=[\n"
     tmp+=gen_table_basic_info()+",\n"
     tmp+=gen_table_report_summary()+"\n"
     tmp+="];\n"
-    tmp+="var check_list="+gen_check_list_table()+";\n"
+    tmp+="check_list="+gen_table_check_list()+";\n"
+    tmp+="failure_list="+gen_table_failure_list()+";\n"
     report_name=str.format("report_%s_%s.html" %(test_reports[0].test_result.sw.build_brand,test_reports[0].test_result.sw.build_product))
     insert_data_into_file("template.html","    //data from test reports",report_name,tmp)
 
