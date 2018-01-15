@@ -218,3 +218,18 @@ client_id_list=[
 'android-zechin',
 'android-zound'
 ]
+
+waiver_list=[
+                {'module':'GtsBackupTestCases',
+                 'test_case':'com.google.android.gts.backup.BackupSettingsTest',
+                 'test_item':'testBackupSettings_launch',
+                 'suite_plan':'gts',
+                 'suite_version':'5.0_r2',
+                 'build_version':'8.0.0'},
+                {'module': 'CtsDeqpTestCases',
+                 'test_case': 'dEQP-VK.memory.pipeline_barrier.host_write_uniform_buffer',
+                 'test_item': '1048576',
+                 'suite_plan': 'cts',
+                 'suite_version': '8.0_r4',
+                 'build_version': '8.0.0'}
+            ]
