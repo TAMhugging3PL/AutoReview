@@ -73,7 +73,7 @@ class TestReport:
             self.device_info=_device_info
 
 class CheckItemBase():
-    check_result="AMBIGUROUS"
+    check_result="UNKNOWN"
     def __init__(self,check_item):
         self.title=check_item[0]
         self.subtitle=check_item[1]
