@@ -115,54 +115,61 @@ def is_all_modules_done(reports):
             res=0;reason+=str.format('%s modules %s/%s; ' %(report.test_result.suite_plan,md,mt))
     return res,reason
 def is_all_essential_gms_installed(reports):
-    res =1;reason=''
-    # old logic from Javier's shell script
-    has_device_info=False
-    device_info={}
-    for report in reports:
-        if report.device_info != None:
-            has_device_info=True
-            device_info=report.device_info.copy()
-            break
-    if (has_device_info==False):
-        res= -1;reason='No GMS info in reports'
-    else:
-        for app in essential_apps:
-            if device_info["package"].has_key(app)==False:
-                if reason=='':
-                    reason='Missing:'
-                res=0;reason+=str.format(' %s;' %app)
+    res,reason=is_gmsversion_up_to_date(reports)
+    if res!=9:
+        res = 1;reason = ''
+        # old logic from Javier's shell script
+        has_device_info=False
+        device_info={}
+        for report in reports:
+            if report.device_info != None:
+                has_device_info=True
+                device_info=report.device_info.copy()
+                break
+        if (has_device_info==False):
+            res= -1;reason='No GMS info in reports'
+        else:
+            for app in essential_apps:
+                if device_info["package"].has_key(app)==False:
+                    if reason=='':
+                        reason='Missing:'
+                    res=0;reason+=str.format(' %s;' %app)
     return res,reason
 
 def is_all_must_gms_installed(reports):
-    res =1;reason=''
-    # old logic
-    device_info={}
-    for report in reports:
-        if report.device_info != None:
-            has_device_info=True
-            device_info=report.device_info.copy()
-            break
-    if (has_device_info==False):
-        res = -1;reason = 'No GMS info in reports'
-    else:
-        for app in must_apps:
-            if device_info["package"].has_key(app)==False:
-                # special rule
-                if app=='com.google.android.apps.tachyon' and device_info["feature"]["android.hardware.telephony"]["available"]==False:
-                    pass
-                elif app=='com.google.android.talk' and device_info["feature"]["android.hardware.telephony"]["available"]==True:
-                    pass
-                else:
-                    if reason == '':
-                        reason = 'Missing:'
-                    res = 0;reason += str.format(' %s;' % app)
+    res,reason=is_gmsversion_up_to_date(reports)
+    if res!=9:
+        res = 1;reason = ''
+        # old logic
+        device_info={}
+        for report in reports:
+            if report.device_info != None:
+                has_device_info=True
+                device_info=report.device_info.copy()
+                break
+        if (has_device_info==False):
+            res = -1;reason = 'No GMS info in reports'
+        else:
+            for app in must_apps:
+                if device_info["package"].has_key(app)==False:
+                    # special rule
+                    if app=='com.google.android.apps.tachyon' and device_info["feature"]["android.hardware.telephony"]["available"]==False:
+                        pass
+                    elif app=='com.google.android.talk' and device_info["feature"]["android.hardware.telephony"]["available"]==True:
+                        pass
+                    else:
+                        if reason == '':
+                            reason = 'Missing:'
+                        res = 0;reason += str.format(' %s;' % app)
     return res, reason
     # future task: to compare geo table
 
 def is_optional_gms_being_allowed(reports):
+    res,reason=is_gmsversion_up_to_date(reports)
+    if res!=9:
+        res = -1;reason = ''
     # future task: to compare geo table
-    return -1,''
+    return res, reason
 
 def is_test_pass(reports):
     # future task: create another part for test failures check and set to waiver
@@ -252,7 +259,7 @@ def check_funding_program(reports):
         res=2
     return res,reason
 
-def list_check_points(reports):
+def list_homescreen_check_points(reports):
     # future task
     return -1,''
 def is_valid_cpu_info(reports):
@@ -276,18 +283,17 @@ check_list=[
     ["Security patch","is consistent in all test_result.xml",is_consistent_security_patch,{0:"FAIL",1:"PASS"}],
     ["Security patch","date.month>=today.month-2", is_security_patch_up_to_date, {0: "FAIL", 1: "PASS"}],
     ["Modules Done","is modules_done/modules_total = 1",is_all_modules_done,{0:"FAIL",1:"PASS"}],
-    ["GMS apps ","essential apps check",is_all_essential_gms_installed,{0:"FAIL",1:"PASS"}],
-    ["GMS apps ","must apps check",is_all_must_gms_installed,{0:"FAIL",1:"PASS"}],
-    ["GMS apps ","optional apps check",is_optional_gms_being_allowed, {0: "FAIL", 1: "PASS"}],
-    ["Testing Fails","is failed > 0 && failed item not in waiver list",is_test_pass,{0:"FAIL",1:"PASS"}],
-    ["GMS Version","is gmsversion up-to-date ",is_gmsversion_up_to_date,{0:"FAIL",1:"PASS",2:"less than 5 days",9:"N/A"}],
+    ["GMS Version", "is gmsversion up-to-date ", is_gmsversion_up_to_date,{0: "FAIL", 1: "PASS", 2: "less than 5 days", 9: "N/A"}],
+    ["GMS apps ","essential apps check",is_all_essential_gms_installed,{0:"FAIL",1:"PASS", 9: "N/A"}],
+    ["GMS apps ","must apps check",is_all_must_gms_installed,{0:"FAIL",1:"PASS", 9: "N/A"}],
+    ["GMS apps ","optional apps check",is_optional_gms_being_allowed, {0: "FAIL", 1: "PASS", 9: "N/A"}],
     ["Tool Version","is gts up-to-date ",is_gts_tool_up_to_date,{0:"FAIL",1:"PASS",2:"less than 5 days",9:"N/A"}],
     ["Tool Version","is cts up-to-date",is_cts_tool_up_to_date,{0:"FAIL",1:"PASS",2:"less than 5 days",9:"N/A"}],
     ["Tool Version","is cts on aosp  up-to-date",is_ctsonaosp_tool_up_to_date,{0:"FAIL",1:"PASS",2:"less than 5 days",9:"N/A"}],
     ["Tool Version","is ctsv up-to-date",is_ctsv_tool_up_to_date,{0:"FAIL",1:"PASS",2:"less than 5 days",9:"N/A"}],
     ["Tool Version","is vts up-to-date",is_vts_tool_up_to_date,{0:"FAIL",1:"PASS",2:"less than 5 days",9:"N/A"}],
     ["Funding Program","check CleanUX, GMSEXPRESS feature",check_funding_program,{0:"FAIL",1:"CLEANUX",2:"GMSEXPRESS+",3:"No Funding Program"}],
-    ["HomeScreen","Human Check",list_check_points,{0:"Normal",1:"CLEANUX",2:"GMSEXPRESS+",3:"RUSSIA RULE"}],
+    ["HomeScreen","Human Check",list_homescreen_check_points,{0:"Normal",1:"CLEANUX",2:"GMSEXPRESS+",3:"RUSSIA RULE"}],
     ["Other Features", "CPU check", is_valid_cpu_info, {0: "FAIL", 1: "PASS"}],
     ["Other Features", "DPI check", is_valid_dpi_info, {0: "FAIL", 1: "PASS"}],
     ["Other Features", "Low ram check", is_row_ram, {0: "-", 1: "Low RAM"}]
