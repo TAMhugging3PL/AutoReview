@@ -6,7 +6,7 @@
 </head>
 <style>
     body {overflow-y: scroll;font-size:small}
-    div#main {width:70%;min-width:500px; margin-left:15%; padding:10px}
+    div#main {width:86%;min-width:500px; margin-left:7%; padding:10px}
     span.info {display:block;width:95%;text-align:right;font-size:smaller;}
     span.info a {margin-right:2px;color:#555555}
     table {width:95%;border-width:1px; border-color:black}
@@ -29,15 +29,14 @@
     div.check_list tr td.info {background:#90c0ee}
     div.failure_list table {table-layout:fixed;}
     div.failure_list table th {width:30%}
-    div.failure_list table td {background:#ffffff;padding:0px;}
+    div.failure_list table td {background:#ffffff;padding:6px;}
+    div.failure_list span {padding:0px;color:gray}
     table.fail_cases_list,table.waive_case_list {width:100%;border-width:0px;border-style:none;border-spacing:0px;}
-    table.fail_cases_list th,table.waive_case_list th {width:33%;}
+    table.fail_cases_list th,table.waive_case_list th {width:33%;padding-left:0px;}
     table.fail_cases_list td.add_waiver, table.waive_case_list td.del_waiver{width:70px;}
     table.fail_cases_list th,table.fail_cases_list td {color:#470074;background:#ffffff;padding-top:5px;padding-bottom:6px;}
-    table.fail_cases_list tr:nth-child(even) th,table.fail_cases_list tr:nth-child(even) td {background:#eeeeee}
     table.waive_case_list th,table.waive_case_list td {color:gray;background:#ffffff;padding-top:5px;padding-bottom:6px;}
-    table.waive_case_list tr:nth-child(even) th,table.waive_case_list tr:nth-child(even) td {background:#eeeeee}
-    input[type=button].add_waiver,input[type=button].del_waiver {border-style:solid;background:rgba(255,255,255,0.3);color:gray;}
+    input[type=button].add_waiver,input[type=button].del_waiver {border-style:solid;background:rgba(255,255,255,0.3);color:gray;cursor: pointer;}
     input[type=button].add_waiver:hover {border-color:green;color:green;}
     input[type=button].del_waiver:hover {border-color:red;color:red;}
 </style>
@@ -94,6 +93,7 @@ function init_failurelist()
         return;
     failurelist_content+=gen_failurelist_html(failure_list.table_title,failure_list.table_name,failure_list.table_data);
     $("#div_failure_list").html(failurelist_content);
+    init_waiver_button();
 }
 
 function init_checkbox()
@@ -111,6 +111,17 @@ function init_check_result()
         new_class=$(this).val().toLowerCase();
         $(this).parent().attr('class',new_class);
     });
+}
+function init_waiver_button()
+{
+    $("div.failure_list input[type=button]").hover(function()
+    {
+	    $(this).parent().parent().children().css('background','#eeeeee');
+	});
+	$("div.failure_list input[type=button]").mouseout(function()
+    {
+	    $(this).parent().parent().children().css('background','');
+	});
 }
 function add_waiver(num1,num2)
 {
@@ -313,18 +324,19 @@ function gen_failurelist_html(table_title, table_name, table_data)
     var tmp="";
     tmp+="<h4>"+table_title+"</h4>";
     tmp+="<table id=\""+table_name+"\">";
+    tmp+="<tr><th colspan=4>Failed Test Cases</th></tr>";
+    count=0;
     for(var i=0;i<table_data.length;i++)
     {
         var t=table_data[i];
-        tmp+="<tr>";
-        tmp+="<th>Failed Test Cases</th>";
-        tmp+="<th>File Name: "+t.filename+"</th>";
-        tmp+="<th>Test Suite: "+t.suite_plan+" "+t.suite_version+"</th>";
-        tmp+="<th>Android Ver: "+t.build_version+"</th>";
-        tmp+="</tr>";
-        tmp+="<tr><td colspan=4><table class='fail_cases_list'>";
+        if(t.failure_cases.length==0)
+            continue;
+        tmp+="<tr><td colspan=4>";
+        tmp+="<span>File Name: "+t.filename+" | Test Suite: "+t.suite_plan+" "+t.suite_version+" | Android Ver: "+t.build_version+"</span>";
+        tmp+="<table class='fail_cases_list'>";
         for(var j=0;j<t.failure_cases.length;j++)
         {
+            count++;
             var fi=t.failure_cases[j];
             tmp+="<tr><th>"+fi.module+"@"+fi.abi+"</th><td>"+fi.test_case+"#"+fi.test_item+"</td>";
             tmp+="<td class='add_waiver'><input type='button' class='add_waiver' value='+ waiver' onclick='add_waiver("+i+","+j+");'></td>";
@@ -332,21 +344,31 @@ function gen_failurelist_html(table_title, table_name, table_data)
         }
         tmp+="</table></td></tr>";
     }
+    if(count==0)
+    {
+        tmp+="<tr><td>no failure</td></tr>";
+    }
     //gen waiver test cases
     tmp+="<tr>";
     tmp+="<th colspan=4>Waived Test Cases</th>";
     tmp+="</tr>";
     tmp+="<tr><td colspan=4><table class='waive_case_list'>";
+    count=0;
     for(var i=0;i<table_data.length;i++)
     {
         t=table_data[i]
         for(var j=0;j<t.waiver_cases.length;j++)
         {
+            count++;
             var wi=t.waiver_cases[j];
             tmp+="<tr><th>"+wi.module+"@"+wi.abi+"</th><td>"+wi.test_case+"#"+wi.test_item+"</td>";
             tmp+="<td class='del_waiver'><input type='button' class='del_waiver' value='- waiver' onclick='remove_waiver("+i+","+j+");'></td>";
             tmp+="</tr>";
         }
+    }
+    if(count==0)
+    {
+        tmp+="<tr><td>no waiver</td></tr>";
     }
     tmp+="</table></td></tr>";
     tmp+="</table>";
