@@ -225,16 +225,22 @@ client_id_list=[
 ]
 
 waiver_list=[
-                {'module':'GtsBackupTestCases',
-                 'test_case':'com.google.android.gts.backup.BackupSettingsTest',
-                 'test_item':'testBackupSettings_launch',
+                {'module':'GtsBackupHostTestCases',
+                 'test_case':'com.google.android.gts.backup.BackupPermissionRestrictionHostSideTest',
+                 'test_item':'testOnlyWhitelistedTransportsOrPackagesHoldBackupPermission',
                  'suite_plan':'gts',
-                 'suite_version':'5.0_r2',
-                 'build_version':'8.0.0'},
-                {'module': 'CtsDeqpTestCases',
-                 'test_case': 'dEQP-VK.memory.pipeline_barrier.host_write_uniform_buffer',
-                 'test_item': '1048576',
-                 'suite_plan': 'cts',
-                 'suite_version': '8.0_r4',
-                 'build_version': '8.0.0'}
+                 'suite_version':'5.1_r1',
+                 'build_version':'7.0'},
+                {'module':'GtsMediaTestCases',
+                 'test_case':'com.google.android.media.gts.WidevineYouTubePerformanceTests',
+                 'test_item':'testL3Cenc720P60',
+                 'suite_plan':'gts',
+                 'suite_version':'5.1_r1',
+                 'build_version':'7.0'},
+                {'module':'GtsMediaTestCases',
+                 'test_case':'com.google.android.media.gts.WidevineYouTubePerformanceTests',
+                 'test_item':'testClear720P60',
+                 'suite_plan':'gts',
+                 'suite_version':'5.1_r1',
+                 'build_version':'7.0'}
             ]
