@@ -16,22 +16,29 @@ def is_consistent_fingerprint(reports):
     return res,reason
 
 def is_valid_fingerprint_format(reports):
-    res = 1;reason = '';
+    res = -1;reason = '';
     #valid format: $(BRAND) /$(PRODUCT) /$(DEVICE):$(VERSION.RELEASE) /$(ID) /$(VERSION.INCREMENTAL):$(TYPE) /$(TAGS)
     fp=reports[0].test_result.sw.build_fingerprint
     brand=reports[0].test_result.sw.build_brand
     product=reports[0].test_result.sw.build_product
     device = reports[0].test_result.sw.build_device
     version_release=reports[0].test_result.sw.build_version_release
-    build_version_incremental=reports[0].test_result.sw.build_version_incremental
-    build_id=reports[0].test_result.sw.build_id
+    #build_version_incremental=reports[0].test_result.sw.build_version_incremental
+    #build_id=reports[0].test_result.sw.build_id
     type='user'
     tags='release-keys'
-    exp_fp=str.format("%s/%s/%s:%s/%s/%s:%s/%s" %(brand,product,device,version_release,build_id,build_version_incremental,type,tags))
-    if fp != exp_fp:
-        res=0
-        reason=str.format("%s != %s" %(fp,exp_fp))
-    #future task: to compare device id list
+    if fp.find('/'):
+        tmp = fp.split('/')
+        if len(tmp)==6:
+            if tmp[0] == brand and tmp[1] == product and\
+                        tmp[2] == str.format('%s:%s' %(device,version_release)) and\
+                        fp.endswith(str.format(':%s/%s' %(type,tags))):
+                        #future task: to compare device id list
+                        res=1;reason=''
+            else:
+                res=0;reason=''
+        else:
+            res=0;reason=''
     return res,reason
 
 def is_valid_clientId(reports):
